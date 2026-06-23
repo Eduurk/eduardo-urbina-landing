@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { WA_LINK_GENERAL } from "@/lib/constants";
 
 const navLinks = [
@@ -9,6 +10,7 @@ const navLinks = [
   { label: "Cómo funciona", href: "#como-funciona" },
   { label: "Contacto", href: "#contacto" },
 ];
+
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -46,6 +48,12 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
+          <Link
+            href="/diagnostico"
+            className="text-xs font-semibold border border-neon/40 text-neon px-3 py-1.5 rounded-full hover:bg-neon/10 transition-colors duration-200"
+          >
+            Diagnóstico gratis
+          </Link>
         </nav>
 
         {/* Desktop CTA */}
@@ -102,6 +110,13 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
+          <Link
+            href="/diagnostico"
+            onClick={() => setMenuOpen(false)}
+            className="text-neon text-sm font-semibold border border-neon/30 px-4 py-2 rounded-full text-center"
+          >
+            Diagnóstico gratis ✦
+          </Link>
           <a
             href={WA_LINK_GENERAL}
             target="_blank"
