@@ -35,27 +35,33 @@ Cuando tengas información sólida sobre al menos 4 de los 6 puntos (normalmente
 Nunca pongas DIAGNÓSTICO_LISTO en medio de un mensaje, siempre al final.`;
 
 export async function POST(request: Request) {
-  const { message, history } = await request.json();
+  try {
+    const { message, history } = await request.json();
 
-  if (!message || typeof message !== "string" || message.length > 1000) {
-    return Response.json({ error: "Mensaje inválido" }, { status: 400 });
+    if (!message || typeof message !== "string" || message.length > 1000) {
+      return Response.json({ error: "Mensaje inválido" }, { status: 400 });
+    }
+
+    const messages = [
+      ...(Array.isArray(history) ? history.slice(-14) : []),
+      { role: "user" as const, content: message },
+    ];
+
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 300,
+      system: SYSTEM_PROMPT,
+      messages,
+    });
+
+    const full = response.content[0].type === "text" ? response.content[0].text : "";
+    const done = full.includes("DIAGNÓSTICO_LISTO");
+    const reply = full.replace("DIAGNÓSTICO_LISTO", "").trim();
+
+    return Response.json({ reply, done });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[diagnostico/chat]", msg);
+    return Response.json({ error: msg }, { status: 500 });
   }
-
-  const messages = [
-    ...(Array.isArray(history) ? history.slice(-14) : []),
-    { role: "user" as const, content: message },
-  ];
-
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 300,
-    system: SYSTEM_PROMPT,
-    messages,
-  });
-
-  const full = response.content[0].type === "text" ? response.content[0].text : "";
-  const done = full.includes("DIAGNÓSTICO_LISTO");
-  const reply = full.replace("DIAGNÓSTICO_LISTO", "").trim();
-
-  return Response.json({ reply, done });
 }

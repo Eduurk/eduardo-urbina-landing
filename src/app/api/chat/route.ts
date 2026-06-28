@@ -23,30 +23,36 @@ Si preguntan algo que no sabés, ofrecé que los llame el coordinador.`,
 };
 
 export async function POST(request: Request) {
-  const { message, scenario, history } = await request.json();
+  try {
+    const { message, scenario, history } = await request.json();
 
-  if (!message || typeof message !== "string" || message.length > 500) {
-    return Response.json({ error: "Mensaje inválido" }, { status: 400 });
+    if (!message || typeof message !== "string" || message.length > 500) {
+      return Response.json({ error: "Mensaje inválido" }, { status: 400 });
+    }
+
+    const systemPrompt =
+      SYSTEM_PROMPTS[scenario as keyof typeof SYSTEM_PROMPTS] ??
+      SYSTEM_PROMPTS.inmobiliaria;
+
+    const messages = [
+      ...(Array.isArray(history) ? history.slice(-6) : []),
+      { role: "user" as const, content: message },
+    ];
+
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 200,
+      system: systemPrompt,
+      messages,
+    });
+
+    const reply =
+      response.content[0].type === "text" ? response.content[0].text : "";
+
+    return Response.json({ reply });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[api/chat]", msg);
+    return Response.json({ error: msg }, { status: 500 });
   }
-
-  const systemPrompt =
-    SYSTEM_PROMPTS[scenario as keyof typeof SYSTEM_PROMPTS] ??
-    SYSTEM_PROMPTS.inmobiliaria;
-
-  const messages = [
-    ...(Array.isArray(history) ? history.slice(-6) : []),
-    { role: "user" as const, content: message },
-  ];
-
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 200,
-    system: systemPrompt,
-    messages,
-  });
-
-  const reply =
-    response.content[0].type === "text" ? response.content[0].text : "";
-
-  return Response.json({ reply });
 }
