@@ -74,6 +74,7 @@ export default function DiagnostiBot() {
       });
 
       const data = await res.json();
+      if (!res.ok || !data.reply) throw new Error(data.error || "Sin respuesta");
       const botMsg: Message = { role: "assistant", content: data.reply };
       const finalMessages = [...newMessages, botMsg];
       setMessages(finalMessages);
