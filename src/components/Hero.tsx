@@ -10,21 +10,23 @@ const WhatsAppIcon = () => (
 export default function Hero() {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center overflow-hidden pt-16">
-      {/* Subtle grid background */}
-      <div
-        className="absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(0,255,178,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,178,0.04) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
+      {/* Video background */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover opacity-30"
+        src="/hero-bg.mp4"
       />
-      {/* Radial center glow */}
+      {/* Overlay oscuro para que el texto sea legible */}
+      <div className="absolute inset-0 bg-[#0a0a0a]/60 pointer-events-none" />
+      {/* Radial center glow encima del video */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(0,255,178,0.07) 0%, transparent 70%)",
+            "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(0,255,178,0.08) 0%, transparent 70%)",
         }}
       />
 
