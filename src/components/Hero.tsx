@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { WA_LINK_GENERAL } from "@/lib/constants";
+import AIOrb from "@/components/AIOrb";
 
 const WhatsAppIcon = () => (
   <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -30,33 +31,41 @@ export default function Hero() {
         }}
       />
 
-      <div className="relative z-10 max-w-4xl mx-auto">
-        <span className="inline-block text-neon text-xs font-semibold tracking-[0.2em] uppercase mb-8 border border-neon/30 px-4 py-2 rounded-full">
-          Eduardo Urbina · IA &amp; Automatización
-        </span>
+      <div className="relative z-10 max-w-6xl mx-auto w-full flex flex-col lg:flex-row items-center gap-12 lg:gap-0">
+        {/* Text side */}
+        <div className="flex-1 text-center lg:text-left">
+          <span className="inline-block text-neon text-xs font-semibold tracking-[0.2em] uppercase mb-8 border border-neon/30 px-4 py-2 rounded-full">
+            Eduardo Urbina · IA &amp; Automatización
+          </span>
 
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-[1.1] text-white mb-6">
-          Tu próximo empleado{" "}
-          <span className="text-neon">no duerme</span>,{" "}
-          no falta y trabaja{" "}
-          <span className="text-neon">24/7</span>
-        </h1>
+          <h1 className="text-4xl sm:text-6xl lg:text-6xl font-bold leading-[1.1] text-white mb-6">
+            Tu próximo empleado{" "}
+            <span className="text-neon">no duerme</span>,{" "}
+            no falta y trabaja{" "}
+            <span className="text-neon">24/7</span>
+          </h1>
 
-        <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Desarrollo asistentes virtuales y sistemas con inteligencia artificial
-          para que tu negocio opere solo, responda clientes y genere resultados
-          sin depender de un equipo grande.
-        </p>
+          <p className="text-lg sm:text-xl text-gray-400 max-w-xl mb-10 leading-relaxed">
+            Desarrollo asistentes virtuales y sistemas con inteligencia artificial
+            para que tu negocio opere solo, responda clientes y genere resultados
+            sin depender de un equipo grande.
+          </p>
 
-        <Link
-          href={WA_LINK_GENERAL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-3 bg-neon text-black font-semibold px-8 py-4 rounded-full text-base sm:text-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(0,255,178,0.35)]"
-        >
-          <WhatsAppIcon />
-          Hablemos por WhatsApp
-        </Link>
+          <Link
+            href={WA_LINK_GENERAL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 bg-neon text-black font-semibold px-8 py-4 rounded-full text-base sm:text-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(0,255,178,0.35)]"
+          >
+            <WhatsAppIcon />
+            Hablemos por WhatsApp
+          </Link>
+        </div>
+
+        {/* Orb side */}
+        <div className="flex-1 flex items-center justify-center">
+          <AIOrb />
+        </div>
       </div>
 
       {/* Bottom fade into next section */}
