@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { WA_LINK_GENERAL } from "@/lib/constants";
-import AIOrb from "@/components/AIOrb";
+import AIOrb3D from "@/components/AIOrb3D";
 
 const WhatsAppIcon = () => (
   <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -64,7 +64,7 @@ export default function Hero() {
 
         {/* Orb side */}
         <div className="flex-1 flex items-center justify-center">
-          <AIOrb />
+          <AIOrb3D />
         </div>
       </div>
 
