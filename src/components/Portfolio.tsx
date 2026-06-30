@@ -59,20 +59,22 @@ const projects = [
   },
 ];
 
+import FadeIn, { StaggerContainer, StaggerItem } from "@/components/FadeIn";
+
 export default function Portfolio() {
   return (
     <section id="portafolio" className="py-24 px-6 bg-background">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
+        <FadeIn className="text-center mb-16">
           <span className="text-neon text-xs font-semibold tracking-[0.2em] uppercase">
             Portafolio
           </span>
           <h2 className="text-3xl sm:text-5xl font-bold text-white mt-3 leading-tight">
             Proyectos que ya funcionan
           </h2>
-        </div>
+        </FadeIn>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {projects.map((project) => {
             const inner = (
               <>
@@ -110,25 +112,25 @@ export default function Portfolio() {
             );
 
             return project.link ? (
-              <a
-                key={project.name}
-                href={project.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group border border-[#2a2a2a] rounded-2xl overflow-hidden bg-[#0f0f0f] hover:border-neon/40 hover:shadow-[0_0_20px_rgba(0,255,178,0.05)] transition-all duration-300 flex flex-col"
-              >
-                {inner}
-              </a>
+              <StaggerItem key={project.name}>
+                <a
+                  href={project.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group border border-[#2a2a2a] rounded-2xl overflow-hidden bg-[#0f0f0f] hover:border-neon/40 hover:shadow-[0_0_20px_rgba(0,255,178,0.05)] transition-all duration-300 flex flex-col h-full"
+                >
+                  {inner}
+                </a>
+              </StaggerItem>
             ) : (
-              <div
-                key={project.name}
-                className="group border border-[#2a2a2a] rounded-2xl overflow-hidden bg-[#0f0f0f] transition-all duration-300 flex flex-col"
-              >
-                {inner}
-              </div>
+              <StaggerItem key={project.name}>
+                <div className="group border border-[#2a2a2a] rounded-2xl overflow-hidden bg-[#0f0f0f] transition-all duration-300 flex flex-col h-full">
+                  {inner}
+                </div>
+              </StaggerItem>
             );
           })}
-        </div>
+        </StaggerContainer>
       </div>
     </section>
   );
