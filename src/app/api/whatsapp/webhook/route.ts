@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase no configurado");
+  return createClient(url, key);
+}
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+function getAnthropic() {
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+}
 
 // Meta llama a este GET una sola vez, al configurar la URL del webhook, para verificar que es tuyo
 export async function GET(req: NextRequest) {
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest) {
     const messageBody = message.text?.body ?? "";
 
     // Guardar el mensaje entrante
-    await supabase.from("whatsapp_messages").insert({
+    await getSupabase().from("whatsapp_messages").insert({
       phone_number_id: phoneNumberId,
       from_number: fromNumber,
       message_body: messageBody,
@@ -50,7 +54,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Buscar el access token guardado para este numero
-    const { data: connection } = await supabase
+    const { data: connection } = await getSupabase()
       .from("whatsapp_connections")
       .select("access_token")
       .eq("phone_number_id", phoneNumberId)
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Generar respuesta con Claude
-    const claudeResponse = await anthropic.messages.create({
+    const claudeResponse = await getAnthropic().messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 500,
       system:
@@ -88,7 +92,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Guardar el mensaje saliente
-    await supabase.from("whatsapp_messages").insert({
+    await getSupabase().from("whatsapp_messages").insert({
       phone_number_id: phoneNumberId,
       from_number: fromNumber,
       message_body: replyText,
