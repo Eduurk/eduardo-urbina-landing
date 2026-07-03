@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
     const fromNumber = message.from;
     const messageBody = message.text?.body ?? "";
 
+    const now = new Date().toISOString();
+
     // Guardar el mensaje entrante
     await getSupabase().from("whatsapp_messages").insert({
       phone_number_id: phoneNumberId,
@@ -52,6 +54,31 @@ export async function POST(req: NextRequest) {
       message_body: messageBody,
       direction: "inbound",
     });
+
+    // Upsert conversacion (crea si no existe, actualiza last_message)
+    await getSupabase().from("whatsapp_conversations").upsert(
+      {
+        phone_number_id: phoneNumberId,
+        from_number: fromNumber,
+        last_message: messageBody,
+        last_direction: "inbound",
+        last_message_at: now,
+      },
+      { onConflict: "from_number" }
+    );
+
+    // Chequear si el bot esta activo para esta conversacion
+    const { data: convRow } = await getSupabase()
+      .from("whatsapp_conversations")
+      .select("bot_active")
+      .eq("from_number", fromNumber)
+      .limit(1)
+      .single();
+
+    if (convRow?.bot_active === false) {
+      // Modo manual: no responder con IA
+      return NextResponse.json({ received: true });
+    }
 
     // Buscar el access token guardado para este numero
     const { data: connection } = await getSupabase()
