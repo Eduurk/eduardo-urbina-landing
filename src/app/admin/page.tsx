@@ -43,21 +43,32 @@ export default function AdminPage() {
     setLoading(true);
     setError("");
 
-    const res = await fetch("/api/admin/leads", {
-      headers: { "x-admin-secret": password },
-    });
+    try {
+      const res = await fetch("/api/admin/leads", {
+        headers: { "x-admin-secret": password },
+      });
 
-    if (res.status === 401) {
-      setError("Contraseña incorrecta");
+      if (res.status === 401) {
+        setError("Contraseña incorrecta");
+        setLoading(false);
+        return;
+      }
+
+      if (!res.ok) {
+        setError(`Error del servidor (${res.status}) — revisá las variables de entorno en Vercel`);
+        setLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      setLeads(data.leads ?? []);
+      setAuthed(true);
+      sessionStorage.setItem("admin_secret", password);
+    } catch (err) {
+      setError("Error de red — intentá de nuevo");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const data = await res.json();
-    setLeads(data.leads ?? []);
-    setAuthed(true);
-    sessionStorage.setItem("admin_secret", password);
-    setLoading(false);
   }
 
   async function refresh() {
