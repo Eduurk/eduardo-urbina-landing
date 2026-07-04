@@ -6,19 +6,32 @@ export async function GET(request: Request) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const { data, error } = await supabase
-    .from("diagnostibot_leads")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+  if (!supabaseUrl || !supabaseKey) {
+    return Response.json(
+      { error: `Variables faltantes: URL=${!!supabaseUrl} KEY=${!!supabaseKey}` },
+      { status: 500 }
+    );
   }
 
-  return Response.json({ leads: data });
+  try {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data, error } = await supabase
+      .from("diagnostibot_leads")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return Response.json({ error: error.message, details: error }, { status: 500 });
+    }
+
+    return Response.json({ leads: data ?? [] });
+  } catch (err: any) {
+    console.error("Admin leads catch:", err);
+    return Response.json({ error: err?.message ?? String(err) }, { status: 500 });
+  }
 }
