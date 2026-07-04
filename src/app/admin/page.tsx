@@ -55,7 +55,8 @@ export default function AdminPage() {
       }
 
       if (!res.ok) {
-        setError(`Error del servidor (${res.status}) — revisá las variables de entorno en Vercel`);
+        const errBody = await res.json().catch(() => ({}));
+        setError(`Error ${res.status}: ${errBody.error ?? "sin detalle"}`);
         setLoading(false);
         return;
       }
