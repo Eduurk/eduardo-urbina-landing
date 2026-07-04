@@ -4,7 +4,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { nombre, whatsapp, rubro, diagnostico, conversacion } = body;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
