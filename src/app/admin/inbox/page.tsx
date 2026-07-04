@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -19,12 +19,14 @@ export default function InboxPage() {
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [hasNew, setHasNew] = useState(false);
+  const prevLatestRef = useRef<string>("");
 
   function getSecret() {
     return typeof window !== "undefined" ? sessionStorage.getItem("admin_secret") ?? "" : "";
   }
 
-  async function load() {
+  async function load(isAuto = false) {
     const secret = getSecret();
     if (!secret) { router.replace("/admin"); return; }
 
@@ -34,7 +36,18 @@ export default function InboxPage() {
       });
       if (res.status === 401) { router.replace("/admin"); return; }
       const data = await res.json();
-      setConvs(data.conversations ?? []);
+      const incoming: Conversation[] = data.conversations ?? [];
+
+      const newLatest = incoming[0]?.last_message_at ?? "";
+      if (isAuto && prevLatestRef.current && newLatest > prevLatestRef.current) {
+        setHasNew(true);
+      }
+      if (!isAuto) {
+        prevLatestRef.current = newLatest;
+        setHasNew(false);
+      }
+
+      setConvs(incoming);
     } catch {
       setError("Error cargando conversaciones");
     } finally {
@@ -42,7 +55,17 @@ export default function InboxPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const interval = setInterval(() => load(true), 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  function handleRefresh() {
+    prevLatestRef.current = convs[0]?.last_message_at ?? "";
+    setHasNew(false);
+    load();
+  }
 
   function formatTime(iso: string | null) {
     if (!iso) return "";
@@ -51,19 +74,37 @@ export default function InboxPage() {
     });
   }
 
+  function isRecent(iso: string | null) {
+    if (!iso) return false;
+    return Date.now() - new Date(iso).getTime() < 60 * 1000;
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="border-b border-white/10 px-6 py-4 flex items-center gap-4">
         <div>
           <h1 className="text-white font-bold text-lg">WhatsApp Inbox</h1>
-          <p className="text-gray-500 text-xs">{convs.length} conversaciones</p>
+          <div className="flex items-center gap-2">
+            <p className="text-gray-500 text-xs">{convs.length} conversaciones</p>
+            <span className="flex items-center gap-1 text-xs text-neon/70">
+              <span className="w-1.5 h-1.5 rounded-full bg-neon animate-pulse inline-block" />
+              en vivo · cada 15s
+            </span>
+          </div>
         </div>
         <div className="ml-auto flex items-center gap-3">
           <button
-            onClick={load}
-            className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-neon/30 hover:text-neon transition-colors"
+            onClick={handleRefresh}
+            className={`relative text-xs border px-3 py-2 rounded-lg transition-colors ${
+              hasNew
+                ? "border-neon/50 text-neon bg-neon/10"
+                : "border-white/10 text-gray-400 hover:border-neon/30 hover:text-neon"
+            }`}
           >
-            ↻ Actualizar
+            {hasNew && (
+              <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-neon rounded-full animate-ping" />
+            )}
+            ↻ {hasNew ? "¡Nuevo mensaje!" : "Actualizar"}
           </button>
           <Link
             href="/admin"
@@ -97,10 +138,17 @@ export default function InboxPage() {
             <Link
               key={c.id}
               href={`/admin/inbox/${encodeURIComponent(c.from_number)}`}
-              className="flex items-center gap-4 bg-white/[0.03] border border-white/10 rounded-xl px-5 py-4 hover:border-neon/20 hover:bg-white/[0.05] transition-all"
+              className={`flex items-center gap-4 border rounded-xl px-5 py-4 hover:bg-white/[0.05] transition-all ${
+                isRecent(c.last_message_at) && c.last_direction === "inbound"
+                  ? "bg-neon/5 border-neon/30"
+                  : "bg-white/[0.03] border-white/10 hover:border-neon/20"
+              }`}
             >
-              <div className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center shrink-0 text-base">
+              <div className="relative w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center shrink-0 text-base">
                 👤
+                {isRecent(c.last_message_at) && c.last_direction === "inbound" && (
+                  <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-neon rounded-full border-2 border-[#0a0a0a]" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">

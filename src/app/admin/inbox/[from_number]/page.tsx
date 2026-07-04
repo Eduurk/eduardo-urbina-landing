@@ -59,7 +59,11 @@ export default function ThreadPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, [fromNumber]);
+  useEffect(() => {
+    load();
+    const interval = setInterval(() => load(), 8000);
+    return () => clearInterval(interval);
+  }, [fromNumber]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
