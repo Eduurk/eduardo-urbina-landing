@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { WA_LINK_DEMO } from "@/lib/constants";
+import { WA_LINK_GENERAL } from "@/lib/constants";
 
 const WhatsAppIcon = () => (
   <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -20,25 +20,34 @@ export default function CtaFinal() {
 
       <div className="relative z-10 max-w-3xl mx-auto text-center">
         <h2 className="text-3xl sm:text-5xl font-bold text-white mb-6 leading-tight">
-          Escribime y te muestro{" "}
-          <span className="text-neon">cómo funciona</span>
-          <br className="hidden sm:block" /> para tu negocio
+          Descubrí qué puede{" "}
+          <span className="text-neon">hacer solo</span>
+          <br className="hidden sm:block" /> tu negocio
         </h2>
 
         <p className="text-gray-400 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-          Sin compromiso. En una llamada corta te muestro cómo un sistema con IA
-          puede transformar la operación de tu negocio en días.
+          En 5 minutos y sin registro, el diagnóstico te dice exactamente qué
+          procesos podés automatizar y cuánto ahorrarías. Gratis.
         </p>
 
-        <Link
-          href={WA_LINK_DEMO}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-3 bg-neon text-black font-semibold px-10 py-5 rounded-full text-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_50px_rgba(0,255,178,0.35)]"
-        >
-          <WhatsAppIcon />
-          Quiero ver cómo funciona
-        </Link>
+        <div className="flex flex-col items-center gap-5">
+          <Link
+            href="/diagnostico"
+            className="inline-flex items-center gap-3 bg-neon text-black font-semibold px-10 py-5 rounded-full text-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_50px_rgba(0,255,178,0.35)]"
+          >
+            <span className="text-xl">🤖</span>
+            Hacer diagnóstico gratis
+          </Link>
+          <a
+            href={WA_LINK_GENERAL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-neon transition-colors duration-200"
+          >
+            <WhatsAppIcon />
+            o escribime directo por WhatsApp
+          </a>
+        </div>
       </div>
     </section>
   );

@@ -1,5 +1,6 @@
-import AIOrb3D from "@/components/AIOrb3D";
-import ConnectWhatsAppButton from "@/components/ConnectWhatsAppButton";
+import Link from "next/link";
+import HeroChatAnimation from "@/components/HeroChatAnimation";
+import { WA_LINK_GENERAL } from "@/lib/constants";
 
 
 export default function Hero() {
@@ -40,17 +41,34 @@ export default function Hero() {
           </h1>
 
           <p className="text-lg sm:text-xl text-gray-400 max-w-xl mb-10 leading-relaxed">
-            Desarrollo asistentes virtuales y sistemas con inteligencia artificial
-            para que tu negocio opere solo, responda clientes y genere resultados
+            Desarrollo asistentes virtuales de WhatsApp con IA para que tu
+            negocio responda clientes, coordine turnos y venda solo —
             sin depender de un equipo grande.
           </p>
 
-          <ConnectWhatsAppButton />
+          {/* CTA principal único + acción secundaria discreta */}
+          <div className="flex flex-col items-center lg:items-start gap-4">
+            <Link
+              href="/diagnostico"
+              className="inline-flex items-center gap-3 bg-neon text-black font-bold px-8 py-4 rounded-full text-base sm:text-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_45px_rgba(0,255,178,0.4)]"
+            >
+              <span className="text-xl">🤖</span>
+              Hacé el diagnóstico gratis
+            </Link>
+            <a
+              href={WA_LINK_GENERAL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-gray-400 hover:text-neon transition-colors duration-200"
+            >
+              o escribime directo por WhatsApp →
+            </a>
+          </div>
         </div>
 
-        {/* Orb side */}
+        {/* Chat animation side */}
         <div className="flex-1 flex items-center justify-center">
-          <AIOrb3D />
+          <HeroChatAnimation />
         </div>
       </div>
 

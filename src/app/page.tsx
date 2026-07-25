@@ -6,6 +6,7 @@ import HowItWorks from "@/components/HowItWorks";
 import Portfolio from "@/components/Portfolio";
 import WhyMe from "@/components/WhyMe";
 import Demo from "@/components/Demo";
+import RoiCalculator from "@/components/RoiCalculator";
 import Contact from "@/components/Contact";
 import CtaFinal from "@/components/CtaFinal";
 import Footer from "@/components/Footer";
@@ -22,6 +23,7 @@ export default function Home() {
       <Portfolio />
       <WhyMe />
       <Demo />
+      <RoiCalculator />
       <Contact />
       <CtaFinal />
       <Footer />

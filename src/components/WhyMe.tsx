@@ -2,25 +2,25 @@ import FadeIn, { StaggerContainer, StaggerItem } from "@/components/FadeIn";
 
 const reasons = [
   {
-    icon: "⚡",
-    title: "Rápido",
-    subtitle: "Entrega en días, no meses",
+    icon: "📍",
+    title: "Base local en Necochea",
+    subtitle: "Hablás siempre conmigo",
     description:
-      "Trabajo con herramientas modernas y metodología ágil. Tu solución funciona rápido, sin ciclos interminables de revisión ni burocracia.",
+      "No es un call center ni una agencia con soporte por ticket. Estoy acá, entiendo cómo trabaja la PyME de la zona y respondo yo. Nos podemos juntar a tomar un café si hace falta.",
   },
   {
-    icon: "🧠",
-    title: "Inteligente",
-    subtitle: "IA real, no decoración",
+    icon: "🟢",
+    title: "Sistemas ya en producción",
+    subtitle: "Respondiendo clientes hoy",
     description:
-      "Uso modelos de lenguaje, automatizaciones con contexto y sistemas que aprenden del uso. No es un chatbot de preguntas frecuentes.",
+      "No te vendo una promesa: ya tengo empleados digitales funcionando en inmobiliarias, gimnasios y talleres, contestando mensajes reales todos los días. Te muestro casos concretos.",
   },
   {
-    icon: "💰",
-    title: "Económico",
-    subtitle: "Sin equipos grandes",
+    icon: "🎯",
+    title: "Un solo responsable",
+    subtitle: "Lo desarrollo, instalo y mantengo yo",
     description:
-      "Un desarrollador especializado es más eficiente que una agencia. Mismo resultado, costo razonable y comunicación directa.",
+      "De la primera charla al soporte, tratás con la misma persona. Sin intermediarios, sin idas y vueltas entre áreas, sin costos de estructura que terminás pagando vos.",
   },
 ];
 
