@@ -101,10 +101,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Buscar access token
+    // Buscar la conexion: token + cerebro del empleado (por numero)
     const { data: connection } = await supabase
       .from("whatsapp_connections")
-      .select("access_token")
+      .select("access_token, business_name, system_prompt")
       .eq("phone_number_id", phoneNumberId)
       .single();
 
@@ -140,17 +140,26 @@ export async function POST(req: NextRequest) {
       messages.push({ role: "user", content: messageBody });
     }
 
-    // Llamar a Claude con herramientas
-    const claudeResponse = await getAnthropic().messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 600,
-      system: `Sos el asistente virtual de Eduardo Urbina, especialista en IA y automatización para negocios. Ayudás a potenciales clientes a entender cómo la IA puede transformar su negocio.
+    // Cerebro del empleado: el system_prompt de esta conexion (por numero).
+    // Si la fila no tiene uno cargado, usa el generico de la marca.
+    const FALLBACK_PROMPT = `Sos el asistente virtual de Eduardo Urbina, especialista en IA y automatización para negocios. Ayudás a potenciales clientes a entender cómo la IA puede transformar su negocio.
 
 Respondé de forma breve, cálida y profesional en español rioplatense. Máximo 3 oraciones por respuesta.
 
 Cuando el cliente muestre interés claro en contratar, pida hablar con Eduardo, o necesite información específica de precios/plazos, usá la herramienta escalate_to_human.
 
-Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto y que Eduardo les hace un diagnóstico gratuito sin compromiso.`,
+Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto y que Eduardo les hace un diagnóstico gratuito sin compromiso.`;
+
+    const systemPrompt =
+      connection.system_prompt && connection.system_prompt.trim().length > 0
+        ? connection.system_prompt
+        : FALLBACK_PROMPT;
+
+    // Llamar a Claude con herramientas
+    const claudeResponse = await getAnthropic().messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 600,
+      system: systemPrompt,
       messages,
       tools: TOOLS,
     });
