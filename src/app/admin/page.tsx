@@ -165,6 +165,12 @@ export default function AdminPage() {
             💬 WhatsApp Inbox
           </a>
           <a
+            href="/admin/empleados"
+            className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-neon/30 hover:text-neon transition-colors"
+          >
+            🤖 Empleados
+          </a>
+          <a
             href="/"
             className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
           >

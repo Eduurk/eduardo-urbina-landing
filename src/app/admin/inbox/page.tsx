@@ -140,6 +140,12 @@ export default function InboxPage() {
             ↻ {hasNew ? "¡Nuevo mensaje!" : "Actualizar"}
           </button>
           <Link
+            href="/admin/empleados"
+            className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-neon/30 hover:text-neon transition-colors"
+          >
+            🤖 Empleados
+          </Link>
+          <Link
             href="/admin"
             className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-white/20 hover:text-white transition-colors"
           >
