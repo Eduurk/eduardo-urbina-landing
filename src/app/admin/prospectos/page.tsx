@@ -170,13 +170,12 @@ export default function ProspectosPage() {
                 </div>
 
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5 flex-wrap">
-                  <a
-                    href={`https://wa.me/${(p.from_number ?? "").replace(/\D/g, "")}`}
-                    target="_blank" rel="noopener noreferrer"
+                  <Link
+                    href={`/admin/inbox/${encodeURIComponent(p.from_number ?? "")}`}
                     className="text-xs text-neon border border-neon/30 px-2.5 py-1 rounded-lg hover:bg-neon/10 transition-colors"
                   >
-                    Escribirle ↗
-                  </a>
+                    Ver chat →
+                  </Link>
                   <span className="ml-auto flex gap-2">
                     {p.estado !== "contactado" && p.estado !== "cerrado" && (
                       <button onClick={() => patch(p.id, { estado: "contactado" })} className="text-xs text-sky-400 border border-sky-500/30 px-2.5 py-1 rounded-lg hover:bg-sky-500/10 transition-colors">Contactado</button>
