@@ -132,6 +132,9 @@ export default function EmpleadosPage() {
           <Link href="/admin/inbox" className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-neon/30 hover:text-neon transition-colors">
             💬 Inbox
           </Link>
+          <Link href="/admin/reclamos" className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-neon/30 hover:text-neon transition-colors">
+            📋 Reclamos
+          </Link>
           <Link href="/admin" className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-white/20 hover:text-white transition-colors">
             DiagnostiBot
           </Link>

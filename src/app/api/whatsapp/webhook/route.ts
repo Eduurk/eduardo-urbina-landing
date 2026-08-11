@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 
+export const maxDuration = 30;
+
 function getSupabase() {
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -13,30 +15,111 @@ function getAnthropic() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 }
 
-const TOOLS: Anthropic.Tool[] = [
-  {
-    name: "escalate_to_human",
-    description:
-      "Usá esta herramienta cuando el cliente muestre intención clara de contratar, pida hablar con Eduardo, solicite precios concretos, o tenga una pregunta que requiera decisión humana. Esto apaga el bot y pasa la conversación a Eduardo.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        reason: {
-          type: "string",
-          enum: ["ready_to_buy", "requested_human", "complex_question"],
-          description: "Motivo del escalamiento",
-        },
-        summary: {
-          type: "string",
-          description:
-            "Resumen breve de la conversación: quién es el cliente, qué negocio tiene, qué necesita",
-        },
-      },
-      required: ["reason", "summary"],
-    },
-  },
-];
+// Descarga un audio de WhatsApp y lo transcribe con Whisper (OpenAI).
+async function transcribeAudio(mediaId: string, waToken: string): Promise<string | null> {
+  const openaiKey = process.env.OPENAI_API_KEY || process.env.openaiapikey;
+  if (!openaiKey) {
+    console.error("Falta OPENAI_API_KEY para transcribir audios");
+    return null;
+  }
+  try {
+    // 1. Obtener la URL del media
+    const metaRes = await fetch(`https://graph.facebook.com/v22.0/${mediaId}`, {
+      headers: { Authorization: `Bearer ${waToken}` },
+    });
+    const meta = await metaRes.json();
+    if (!meta?.url) {
+      console.error("No se obtuvo URL del audio:", meta);
+      return null;
+    }
+    // 2. Descargar el binario del audio
+    const audioRes = await fetch(meta.url, { headers: { Authorization: `Bearer ${waToken}` } });
+    if (!audioRes.ok) {
+      console.error("No se pudo descargar el audio:", audioRes.status);
+      return null;
+    }
+    const audioBuf = await audioRes.arrayBuffer();
+    const mime = meta.mime_type?.split(";")[0] || "audio/ogg";
+    // 3. Transcribir con Whisper
+    const form = new FormData();
+    form.append("file", new Blob([audioBuf], { type: mime }), "audio.ogg");
+    form.append("model", "whisper-1");
+    const wRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${openaiKey}` },
+      body: form,
+    });
+    const w = await wRes.json();
+    if (!w?.text) {
+      console.error("Whisper no devolvió texto:", w);
+      return null;
+    }
+    return String(w.text).trim();
+  } catch (err) {
+    console.error("Error transcribiendo audio:", err);
+    return null;
+  }
+}
 
+// ─── Herramientas ────────────────────────────────────────────────────────────
+const ESCALATE_TOOL: Anthropic.Tool = {
+  name: "escalate_to_human",
+  description:
+    "Usá esta herramienta cuando la persona muestre intención clara de contratar, pida hablar con un humano, solicite algo que requiera decisión humana, o sea un caso delicado. Esto apaga el bot y pasa la conversación a una persona del equipo.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      reason: {
+        type: "string",
+        enum: ["ready_to_buy", "requested_human", "complex_question", "urgent"],
+        description: "Motivo del escalamiento",
+      },
+      summary: {
+        type: "string",
+        description: "Resumen breve de la conversación: quién es y qué necesita",
+      },
+    },
+    required: ["reason", "summary"],
+  },
+};
+
+const CREAR_RECLAMO_TOOL: Anthropic.Tool = {
+  name: "crear_reclamo",
+  description:
+    "Registrá un reclamo cuando un vecino reporta un problema del edificio (agua, ascensor, electricidad, ruidos, limpieza, portón, etc.). Usala solo cuando ya tengas claro qué pasa. Devuelve el número de reclamo para dárselo al vecino.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      unidad: {
+        type: "string",
+        description: "Unidad o ubicación del reclamo (ej: 4°B, PB, Cochera, Palier)",
+      },
+      categoria: {
+        type: "string",
+        enum: ["Plomería", "Ascensor", "Electricidad", "Ruidos", "Limpieza", "Portón", "Expensas", "Otro"],
+        description: "Categoría del reclamo",
+      },
+      descripcion: {
+        type: "string",
+        description: "Descripción breve y clara del problema",
+      },
+      urgencia: {
+        type: "string",
+        enum: ["urgente", "normal", "baja"],
+        description: "Urgente para agua, gas, ascensor con personas o riesgo de seguridad. Normal para el resto. Baja para consultas menores.",
+      },
+    },
+    required: ["categoria", "descripcion"],
+  },
+};
+
+function buildTools(employeeType?: string | null): Anthropic.Tool[] {
+  const tools: Anthropic.Tool[] = [ESCALATE_TOOL];
+  if (employeeType === "portero") tools.push(CREAR_RECLAMO_TOOL);
+  return tools;
+}
+
+// ─── Webhook verification ─────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get("hub.mode");
@@ -64,16 +147,67 @@ export async function POST(req: NextRequest) {
 
     const phoneNumberId = value.metadata.phone_number_id;
     const fromNumber = message.from;
-    const messageBody = message.text?.body ?? "";
-    const now = new Date().toISOString();
-
     const supabase = getSupabase();
+
+    // Conexion primero: necesitamos el token para bajar audios y para responder
+    const { data: connection } = await supabase
+      .from("whatsapp_connections")
+      .select("access_token, business_name, system_prompt, employee_type")
+      .eq("phone_number_id", phoneNumberId)
+      .single();
+
+    if (!connection) {
+      console.error("No se encontro conexion para phone_number_id:", phoneNumberId);
+      return NextResponse.json({ received: true });
+    }
+
+    async function sendWhatsApp(text: string) {
+      const res = await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${connection!.access_token}`,
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: fromNumber,
+          text: { body: text },
+        }),
+      });
+      if (!res.ok) {
+        console.error("Error enviando a WhatsApp:", res.status, await res.text().catch(() => ""));
+      }
+      await supabase.from("whatsapp_messages").insert({
+        phone_number_id: phoneNumberId,
+        from_number: fromNumber,
+        message_body: text,
+        direction: "outbound",
+      });
+      await supabase
+        .from("whatsapp_conversations")
+        .update({ last_message: text, last_direction: "outbound", last_message_at: new Date().toISOString() })
+        .eq("from_number", fromNumber);
+    }
+
+    // Determinar el texto del mensaje: texto directo o transcripción de un audio
+    let messageBody = "";
+    let voiceFailed = false;
+    if (message.type === "audio" && message.audio?.id) {
+      const text = await transcribeAudio(message.audio.id, connection.access_token);
+      if (text) messageBody = text;
+      else voiceFailed = true;
+    } else {
+      messageBody = message.text?.body ?? "";
+    }
+
+    const now = new Date().toISOString();
+    const storedInbound = voiceFailed ? "🎤 (nota de voz)" : messageBody;
 
     // Guardar mensaje entrante
     await supabase.from("whatsapp_messages").insert({
       phone_number_id: phoneNumberId,
       from_number: fromNumber,
-      message_body: messageBody,
+      message_body: storedInbound,
       direction: "inbound",
     });
 
@@ -82,7 +216,7 @@ export async function POST(req: NextRequest) {
       {
         phone_number_id: phoneNumberId,
         from_number: fromNumber,
-        last_message: messageBody,
+        last_message: storedInbound,
         last_direction: "inbound",
         last_message_at: now,
       },
@@ -101,15 +235,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Buscar la conexion: token + cerebro del empleado (por numero)
-    const { data: connection } = await supabase
-      .from("whatsapp_connections")
-      .select("access_token, business_name, system_prompt")
-      .eq("phone_number_id", phoneNumberId)
-      .single();
+    // Si era un audio y no se pudo transcribir, pedir texto amablemente
+    if (voiceFailed) {
+      await sendWhatsApp("Perdón, no pude escuchar bien el audio 🙉 ¿Me lo escribís en un mensajito?");
+      return NextResponse.json({ received: true });
+    }
 
-    if (!connection) {
-      console.error("No se encontro conexion para phone_number_id:", phoneNumberId);
+    // Si no hay texto (imagen, sticker, etc.), por ahora no procesamos
+    if (!messageBody.trim()) {
       return NextResponse.json({ received: true });
     }
 
@@ -135,13 +268,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Garantizar que el array no este vacio y termine en user
     if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
       messages.push({ role: "user", content: messageBody });
     }
 
-    // Cerebro del empleado: el system_prompt de esta conexion (por numero).
-    // Si la fila no tiene uno cargado, usa el generico de la marca.
+    // Cerebro del empleado (por numero), con fallback generico
     const FALLBACK_PROMPT = `Sos el asistente virtual de Eduardo Urbina, especialista en IA y automatización para negocios. Ayudás a potenciales clientes a entender cómo la IA puede transformar su negocio.
 
 Respondé de forma breve, cálida y profesional en español rioplatense. Máximo 3 oraciones por respuesta.
@@ -155,68 +286,115 @@ Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto
         ? connection.system_prompt
         : FALLBACK_PROMPT;
 
-    // Llamar a Claude con herramientas
-    const claudeResponse = await getAnthropic().messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 600,
-      system: systemPrompt,
-      messages,
-      tools: TOOLS,
-    });
+    const tools = buildTools(connection.employee_type);
 
-    // Función auxiliar para enviar mensaje por WhatsApp
-    async function sendWhatsApp(text: string) {
-      await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${connection!.access_token}`,
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: fromNumber,
-          text: { body: text },
-        }),
-      });
-      await supabase.from("whatsapp_messages").insert({
-        phone_number_id: phoneNumberId,
-        from_number: fromNumber,
-        message_body: text,
-        direction: "outbound",
-      });
-      await supabase
-        .from("whatsapp_conversations")
-        .update({ last_message: text, last_direction: "outbound", last_message_at: new Date().toISOString() })
-        .eq("from_number", fromNumber);
+    async function crearReclamo(input: {
+      unidad?: string;
+      categoria: string;
+      descripcion: string;
+      urgencia?: string;
+    }): Promise<number | null> {
+      const { data, error } = await supabase
+        .from("reclamos")
+        .insert({
+          phone_number_id: phoneNumberId,
+          from_number: fromNumber,
+          unidad: input.unidad ?? null,
+          categoria: input.categoria,
+          descripcion: input.descripcion,
+          urgencia: input.urgencia ?? "normal",
+          estado: "pendiente",
+        })
+        .select("id")
+        .single();
+      if (error) {
+        console.error("Error creando reclamo:", error);
+        return null;
+      }
+      return (data?.id as number) ?? null;
     }
 
-    // Manejar tool use
-    const toolUseBlock = claudeResponse.content.find((b) => b.type === "tool_use");
+    // ─── Loop de herramientas ─────────────────────────────────────────────────
+    let finalText = "";
+    let disableBot = false;
+    let escalateSummary = "";
 
-    if (toolUseBlock && toolUseBlock.type === "tool_use" && toolUseBlock.name === "escalate_to_human") {
-      const input = toolUseBlock.input as { reason: string; summary: string };
+    for (let i = 0; i < 4; i++) {
+      const resp = await getAnthropic().messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 700,
+        system: systemPrompt,
+        messages,
+        tools,
+      });
 
-      // Apagar bot y guardar resumen
+      messages.push({ role: "assistant", content: resp.content });
+
+      const toolUses = resp.content.filter(
+        (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+      );
+
+      if (toolUses.length === 0) {
+        const textBlock = resp.content.find(
+          (b): b is Anthropic.TextBlock => b.type === "text"
+        );
+        finalText = textBlock?.text ?? "";
+        break;
+      }
+
+      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+      for (const tu of toolUses) {
+        if (tu.name === "escalate_to_human") {
+          const input = tu.input as { reason: string; summary: string };
+          disableBot = true;
+          escalateSummary = `[ESCALADO — ${input.reason}] ${input.summary}`;
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tu.id,
+            content:
+              "Listo, la conversación quedó derivada a una persona del equipo. Despedite del cliente de forma amable y breve, avisándole que alguien lo va a contactar.",
+          });
+        } else if (tu.name === "crear_reclamo") {
+          const input = tu.input as {
+            unidad?: string;
+            categoria: string;
+            descripcion: string;
+            urgencia?: string;
+          };
+          const ticket = await crearReclamo(input);
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tu.id,
+            content: ticket
+              ? `Reclamo registrado con el número #${ticket}. Confirmáselo al vecino y avisale que le van a dar seguimiento.`
+              : "No se pudo registrar el reclamo. Pedile disculpas al vecino y decile que lo intente de nuevo en un rato.",
+          });
+        } else {
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tu.id,
+            content: "Herramienta no disponible.",
+            is_error: true,
+          });
+        }
+      }
+
+      messages.push({ role: "user", content: toolResults });
+    }
+
+    if (finalText) {
+      await sendWhatsApp(finalText);
+    }
+
+    if (disableBot) {
       await supabase
         .from("whatsapp_conversations")
         .update({
           bot_active: false,
-          last_message: `[ESCALADO — ${input.reason}] ${input.summary}`,
+          last_message: escalateSummary,
           last_message_at: new Date().toISOString(),
         })
         .eq("from_number", fromNumber);
-
-      await sendWhatsApp(
-        "¡Perfecto! Eduardo se va a comunicar con vos personalmente para darte toda la información. 🤝"
-      );
-
-      return NextResponse.json({ received: true });
-    }
-
-    // Respuesta de texto normal
-    const textBlock = claudeResponse.content.find((b) => b.type === "text");
-    if (textBlock && textBlock.type === "text" && textBlock.text) {
-      await sendWhatsApp(textBlock.text);
     }
 
     return NextResponse.json({ received: true });
