@@ -17,7 +17,7 @@ function getAnthropic() {
 
 // Descarga un audio de WhatsApp y lo transcribe con Whisper (OpenAI).
 async function transcribeAudio(mediaId: string, waToken: string): Promise<string | null> {
-  const groqKey = process.env.GROQ_API_KEY || process.env.groqapikey;
+  const groqKey = process.env.GROQ_API_KEY || process.env.groqapikey || process.env.groq;
   if (!groqKey) {
     console.error("Falta GROQ_API_KEY para transcribir audios");
     return null;
