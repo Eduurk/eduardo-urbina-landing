@@ -17,9 +17,9 @@ function getAnthropic() {
 
 // Descarga un audio de WhatsApp y lo transcribe con Whisper (OpenAI).
 async function transcribeAudio(mediaId: string, waToken: string): Promise<string | null> {
-  const openaiKey = process.env.OPENAI_API_KEY || process.env.openaiapikey;
-  if (!openaiKey) {
-    console.error("Falta OPENAI_API_KEY para transcribir audios");
+  const groqKey = process.env.GROQ_API_KEY || process.env.groqapikey;
+  if (!groqKey) {
+    console.error("Falta GROQ_API_KEY para transcribir audios");
     return null;
   }
   try {
@@ -43,10 +43,10 @@ async function transcribeAudio(mediaId: string, waToken: string): Promise<string
     // 3. Transcribir con Whisper
     const form = new FormData();
     form.append("file", new Blob([audioBuf], { type: mime }), "audio.ogg");
-    form.append("model", "whisper-1");
-    const wRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    form.append("model", "whisper-large-v3-turbo");
+    const wRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${openaiKey}` },
+      headers: { Authorization: `Bearer ${groqKey}` },
       body: form,
     });
     const w = await wRes.json();
