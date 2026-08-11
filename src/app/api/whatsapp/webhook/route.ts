@@ -113,9 +113,40 @@ const CREAR_RECLAMO_TOOL: Anthropic.Tool = {
   },
 };
 
+const REGISTRAR_LEAD_TOOL: Anthropic.Tool = {
+  name: "registrar_lead",
+  description:
+    "Registrá o actualizá al prospecto en el CRM cuando ya sepas su rubro y qué necesita. Llamala cuando la conversación avanzó y tenés info útil para el seguimiento comercial. Si ya lo registraste antes en esta charla, volvé a llamarla para actualizar los datos. No le avises al cliente que lo registrás.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      nombre: {
+        type: "string",
+        description: "Nombre de la persona o del negocio, si lo sabés",
+      },
+      rubro: {
+        type: "string",
+        description: "Rubro del negocio (ej: ferretería, inmobiliaria, clínica, gastronomía)",
+      },
+      necesidad: {
+        type: "string",
+        description: "Qué necesita o qué problema quiere resolver, en pocas palabras",
+      },
+      temperatura: {
+        type: "string",
+        enum: ["caliente", "tibio", "frio"],
+        description:
+          "caliente = listo para avanzar/contratar; tibio = interesado pero explorando; frio = solo curiosea",
+      },
+    },
+    required: ["rubro", "necesidad"],
+  },
+};
+
 function buildTools(employeeType?: string | null): Anthropic.Tool[] {
   const tools: Anthropic.Tool[] = [ESCALATE_TOOL];
   if (employeeType === "portero") tools.push(CREAR_RECLAMO_TOOL);
+  else tools.push(REGISTRAR_LEAD_TOOL);
   return tools;
 }
 
@@ -314,6 +345,31 @@ Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto
       return (data?.id as number) ?? null;
     }
 
+    async function registrarLead(input: {
+      nombre?: string;
+      rubro: string;
+      necesidad: string;
+      temperatura?: string;
+    }): Promise<boolean> {
+      const { error } = await supabase.from("prospectos").upsert(
+        {
+          phone_number_id: phoneNumberId,
+          from_number: fromNumber,
+          nombre: input.nombre ?? null,
+          rubro: input.rubro,
+          necesidad: input.necesidad,
+          temperatura: input.temperatura ?? "tibio",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "phone_number_id,from_number" }
+      );
+      if (error) {
+        console.error("Error registrando lead:", error);
+        return false;
+      }
+      return true;
+    }
+
     // ─── Loop de herramientas ─────────────────────────────────────────────────
     let finalText = "";
     let disableBot = false;
@@ -368,6 +424,19 @@ Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto
             content: ticket
               ? `Reclamo registrado con el número #${ticket}. Confirmáselo al vecino y avisale que le van a dar seguimiento.`
               : "No se pudo registrar el reclamo. Pedile disculpas al vecino y decile que lo intente de nuevo en un rato.",
+          });
+        } else if (tu.name === "registrar_lead") {
+          const input = tu.input as {
+            nombre?: string;
+            rubro: string;
+            necesidad: string;
+            temperatura?: string;
+          };
+          await registrarLead(input);
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tu.id,
+            content: "Prospecto guardado en el CRM. Seguí la conversación con naturalidad, sin mencionar que lo registraste.",
           });
         } else {
           toolResults.push({
