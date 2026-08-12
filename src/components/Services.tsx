@@ -2,34 +2,40 @@ import FadeIn, { StaggerContainer, StaggerItem } from "@/components/FadeIn";
 
 const services = [
   {
-    icon: "🤖",
-    title: "Chatbots con IA",
-    description:
-      "Atención al cliente automática las 24 hs. Responde consultas, filtra prospectos y cierra ventas sin intervención humana.",
-  },
-  {
     icon: "💬",
-    title: "Automatización WhatsApp",
+    title: "Atiende 24/7",
     description:
-      "Respuestas automáticas, seguimiento de clientes, alertas y notificaciones inteligentes directamente en WhatsApp.",
+      "Responde al instante, con memoria de la conversación y en el tono de tu negocio. No duerme, no falta, no se cansa.",
   },
   {
-    icon: "📊",
-    title: "Dashboards y Reportes",
+    icon: "🎤",
+    title: "Entiende audios",
     description:
-      "Visualizá tus métricas clave en tiempo real. Decisiones basadas en datos, no en suposiciones.",
+      "Tus clientes mandan notas de voz y las entiende igual que un texto. Clave para el WhatsApp argentino.",
   },
   {
-    icon: "📡",
-    title: "Monitoreo IoT",
+    icon: "💳",
+    title: "Cobra por vos",
     description:
-      "Conectá sensores físicos a tu operación. Alertas automáticas cuando algo sale de parámetros normales.",
+      "Genera links de pago de MercadoPago al instante y te avisa cuando el cliente pagó. Tu empleado también factura.",
   },
   {
-    icon: "⚙️",
-    title: "Sistemas a Medida",
+    icon: "📋",
+    title: "Toma turnos y pedidos",
     description:
-      "Gestión de turnos, inventario, presupuestos y más. Soluciones pensadas exactamente para tu negocio.",
+      "Registra cada turno, pedido o reclamo con su seguimiento, para que no se te escape ninguno.",
+  },
+  {
+    icon: "🎯",
+    title: "Ordena tus clientes",
+    description:
+      "Guarda cada prospecto, lo califica por interés y te muestra a quién conviene seguir primero.",
+  },
+  {
+    icon: "🙋",
+    title: "Sabe cuándo llamarte",
+    description:
+      "Cuando hay una venta caliente o un caso que necesita una persona, te pasa la conversación al instante.",
   },
 ];
 
@@ -39,11 +45,14 @@ export default function Services() {
       <div className="max-w-6xl mx-auto">
         <FadeIn className="text-center mb-16">
           <span className="text-neon text-xs font-semibold tracking-[0.2em] uppercase">
-            Servicios
+            Qué hace
           </span>
           <h2 className="text-3xl sm:text-5xl font-bold text-white mt-3 leading-tight">
-            Empleados digitales para<br className="hidden sm:block" /> cada área de tu negocio
+            No es un chatbot.<br className="hidden sm:block" /> Es un empleado que trabaja.
           </h2>
+          <p className="text-gray-400 text-base sm:text-lg mt-5 max-w-2xl mx-auto">
+            Un asistente con IA conectado a tu WhatsApp que no solo responde: agenda, cobra y ordena tu negocio solo.
+          </p>
         </FadeIn>
 
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
