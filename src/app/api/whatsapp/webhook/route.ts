@@ -143,8 +143,28 @@ const REGISTRAR_LEAD_TOOL: Anthropic.Tool = {
   },
 };
 
+const PAGO_TOOL: Anthropic.Tool = {
+  name: "generar_link_pago",
+  description:
+    "Generá un link de pago de MercadoPago cuando el cliente quiere pagar algo: un producto, un pedido, una seña de turno, expensas. Devuelve el link para que se lo mandes. Confirmá el monto con el cliente antes de generarlo.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      concepto: {
+        type: "string",
+        description: "Qué se está cobrando (ej: 2 bolsas de cemento, seña de turno, expensas de agosto)",
+      },
+      monto: {
+        type: "number",
+        description: "Monto total a cobrar, en pesos argentinos (solo el número)",
+      },
+    },
+    required: ["concepto", "monto"],
+  },
+};
+
 function buildTools(employeeType?: string | null): Anthropic.Tool[] {
-  const tools: Anthropic.Tool[] = [ESCALATE_TOOL];
+  const tools: Anthropic.Tool[] = [ESCALATE_TOOL, PAGO_TOOL];
   if (employeeType === "portero") tools.push(CREAR_RECLAMO_TOOL);
   else tools.push(REGISTRAR_LEAD_TOOL);
   return tools;
@@ -370,6 +390,39 @@ Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto
       return true;
     }
 
+    async function generarLinkPago(input: { concepto: string; monto: number }): Promise<string | null> {
+      const mpToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+      if (!mpToken) {
+        console.error("Falta MERCADOPAGO_ACCESS_TOKEN");
+        return null;
+      }
+      try {
+        const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${mpToken}` },
+          body: JSON.stringify({
+            items: [
+              {
+                title: input.concepto.slice(0, 250),
+                quantity: 1,
+                unit_price: Number(input.monto),
+                currency_id: "ARS",
+              },
+            ],
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          console.error("Error MercadoPago:", data);
+          return null;
+        }
+        return data.init_point ?? data.sandbox_init_point ?? null;
+      } catch (err) {
+        console.error("Error generando link de pago:", err);
+        return null;
+      }
+    }
+
     // ─── Loop de herramientas ─────────────────────────────────────────────────
     let finalText = "";
     let disableBot = false;
@@ -437,6 +490,16 @@ Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto
             type: "tool_result",
             tool_use_id: tu.id,
             content: "Prospecto guardado en el CRM. Seguí la conversación con naturalidad, sin mencionar que lo registraste.",
+          });
+        } else if (tu.name === "generar_link_pago") {
+          const input = tu.input as { concepto: string; monto: number };
+          const link = await generarLinkPago(input);
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tu.id,
+            content: link
+              ? `Link de pago generado. Mandáselo al cliente tal cual, en su propia línea, para que pague ${input.concepto} ($${input.monto}): ${link}`
+              : "No se pudo generar el link de pago. Pedile disculpas al cliente y decile que lo intente en un ratito.",
           });
         } else {
           toolResults.push({
