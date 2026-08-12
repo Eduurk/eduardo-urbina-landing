@@ -107,6 +107,7 @@ export default function ProspectosPage() {
         <div className="ml-auto flex items-center gap-3">
           <Link href="/admin/inbox" className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-neon/30 hover:text-neon transition-colors">💬 Inbox</Link>
           <Link href="/admin/empleados" className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-neon/30 hover:text-neon transition-colors">🤖 Empleados</Link>
+          <Link href="/admin/pagos" className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-neon/30 hover:text-neon transition-colors">💳 Pagos</Link>
         </div>
       </div>
 

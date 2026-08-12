@@ -397,6 +397,7 @@ Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto
         return null;
       }
       try {
+        const externalRef = crypto.randomUUID();
         const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${mpToken}` },
@@ -409,6 +410,8 @@ Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto
                 currency_id: "ARS",
               },
             ],
+            external_reference: externalRef,
+            notification_url: "https://eduardo-urbina-landing.vercel.app/api/mercadopago/webhook",
           }),
         });
         const data = await res.json();
@@ -416,6 +419,16 @@ Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto
           console.error("Error MercadoPago:", data);
           return null;
         }
+        // Registrar el cobro como pendiente (el webhook de MP lo marca pagado)
+        await supabase.from("pagos").insert({
+          phone_number_id: phoneNumberId,
+          from_number: fromNumber,
+          concepto: input.concepto,
+          monto: Number(input.monto),
+          estado: "pendiente",
+          external_reference: externalRef,
+          preference_id: data.id ?? null,
+        });
         return data.init_point ?? data.sandbox_init_point ?? null;
       } catch (err) {
         console.error("Error generando link de pago:", err);

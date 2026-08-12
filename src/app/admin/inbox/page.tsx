@@ -158,6 +158,12 @@ export default function InboxPage() {
             🎯 Prospectos
           </Link>
           <Link
+            href="/admin/pagos"
+            className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-neon/30 hover:text-neon transition-colors"
+          >
+            💳 Pagos
+          </Link>
+          <Link
             href="/admin"
             className="text-xs text-gray-400 border border-white/10 px-3 py-2 rounded-lg hover:border-white/20 hover:text-white transition-colors"
           >
