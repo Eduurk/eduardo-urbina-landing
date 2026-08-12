@@ -211,13 +211,19 @@ export default function EmpleadosPage() {
                     {selected.display_phone_number || "—"} · ID {selected.phone_number_id}
                   </p>
                 </div>
+                <Link
+                  href={`/admin/edificio/${encodeURIComponent(selected.phone_number_id)}`}
+                  className="ml-auto text-xs text-indigo-300 border border-indigo-400/30 px-3 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors"
+                >
+                  📊 Panel del edificio
+                </Link>
                 <a
                   href={`https://wa.me/${(selected.display_phone_number ?? "").replace(/\D/g, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-auto text-xs text-neon border border-neon/30 px-3 py-1.5 rounded-lg hover:bg-neon/10 transition-colors"
+                  className="text-xs text-neon border border-neon/30 px-3 py-1.5 rounded-lg hover:bg-neon/10 transition-colors"
                 >
-                  Probar por WhatsApp ↗
+                  Probar ↗
                 </a>
               </div>
 
