@@ -163,10 +163,29 @@ const PAGO_TOOL: Anthropic.Tool = {
   },
 };
 
+const CONSULTAR_EXPENSAS_TOOL: Anthropic.Tool = {
+  name: "consultar_expensas",
+  description:
+    "Consultá el saldo de expensas de una unidad cuando un vecino pregunta cuánto debe. Necesitás la unidad (ej: 4°B). Devuelve el saldo para informárselo y, si quiere pagar, cobrarlo con generar_link_pago.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      unidad: {
+        type: "string",
+        description: "La unidad del vecino, tal como la dice (ej: 4°B, PB, 2°A)",
+      },
+    },
+    required: ["unidad"],
+  },
+};
+
 function buildTools(employeeType?: string | null): Anthropic.Tool[] {
   const tools: Anthropic.Tool[] = [ESCALATE_TOOL, PAGO_TOOL];
-  if (employeeType === "portero") tools.push(CREAR_RECLAMO_TOOL);
-  else tools.push(REGISTRAR_LEAD_TOOL);
+  if (employeeType === "portero") {
+    tools.push(CREAR_RECLAMO_TOOL, CONSULTAR_EXPENSAS_TOOL);
+  } else {
+    tools.push(REGISTRAR_LEAD_TOOL);
+  }
   return tools;
 }
 
@@ -436,6 +455,22 @@ Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto
       }
     }
 
+    async function consultarExpensas(input: { unidad: string }): Promise<{ saldo: number; nombre: string | null } | null> {
+      const { data, error } = await supabase
+        .from("unidades")
+        .select("saldo_expensas, nombre")
+        .eq("phone_number_id", phoneNumberId)
+        .ilike("unidad", input.unidad.trim())
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        console.error("Error consultando expensas:", error);
+        return null;
+      }
+      if (!data) return null;
+      return { saldo: Number(data.saldo_expensas) || 0, nombre: (data.nombre as string) ?? null };
+    }
+
     // ─── Loop de herramientas ─────────────────────────────────────────────────
     let finalText = "";
     let disableBot = false;
@@ -513,6 +548,16 @@ Nunca des precios concretos. Si preguntan costos, decí que depende del proyecto
             content: link
               ? `Link de pago generado. Mandáselo al cliente tal cual, en su propia línea, para que pague ${input.concepto} ($${input.monto}): ${link}`
               : "No se pudo generar el link de pago. Pedile disculpas al cliente y decile que lo intente en un ratito.",
+          });
+        } else if (tu.name === "consultar_expensas") {
+          const input = tu.input as { unidad: string };
+          const exp = await consultarExpensas(input);
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tu.id,
+            content: exp
+              ? `La unidad ${input.unidad}${exp.nombre ? " (" + exp.nombre + ")" : ""} tiene un saldo de $${exp.saldo} de expensas. Informáselo al vecino. Si quiere pagar, usá generar_link_pago con ese monto y el concepto "Expensas ${input.unidad}".`
+              : `No encontré la unidad ${input.unidad} en el sistema. Pedile al vecino que verifique la unidad o que consulte con la administración.`,
           });
         } else {
           toolResults.push({
